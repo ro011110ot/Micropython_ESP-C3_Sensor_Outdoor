@@ -4,11 +4,12 @@ import machine
 import wifi
 import ntp
 import gc
+import json
 from mqtt_client import MQTT
 from sensors import read_all_sensors
 
 # --- Configuration ---
-# Reduced for responsiveness, change back to 900 for battery/long-term
+# 900 seconds = 15 minutes for battery efficiency
 LOOP_INTERVAL_SEC = 900
 
 
@@ -26,7 +27,7 @@ def main():
         time.sleep(10)
         machine.reset()
 
-    # 2. Synchronize Time
+    # 2. Synchronize Time (Important for SSL)
     try:
         ntp.sync()
     except Exception as e:
@@ -48,7 +49,7 @@ def main():
                 print("MQTT connection lost. Reconnecting...")
                 mqtt.connect()
 
-            # Read all sensors configured in sensors.py (e.g., DS18B20)
+            # Read all sensors configured in sensors.py
             sensor_readings = read_all_sensors()
 
             if sensor_readings:
@@ -57,14 +58,25 @@ def main():
                     wifi.led.set_state(0, 0, 255)
 
                 for reading in sensor_readings:
-                    # Payload contains id, value, unit
+                    # 'payload' contains id, value, unit
                     payload = reading["data"]
 
-                    # CHANGE: Publish to sub-topic 'Sensors/Outdoor'
-                    if mqtt.publish(payload, topic="Sensors/Outdoor"):
-                        print(f"Published to Sensors/Outdoor: {payload['id']} -> {payload['value']} {payload['unit']}")
+                    # DYNAMIC TOPIC: Creates 'Sensors/Outdoor/Temp' etc.
+                    # This ensures the MariaDB Logger creates separate tables.
+                    topic_suffix = reading.get('type', 'Unknown')
+                    specific_topic = f"Sensors/Outdoor/{topic_suffix}"
 
-                    time.sleep(0.5)
+                    print(f"Attempting to publish to {specific_topic}...")
+
+                    # Publish as JSON with Retain-Flag
+                    if mqtt.publish(payload, topic=specific_topic, retain=True):
+                        print(f"Success: {json.dumps(payload)}")
+                    else:
+                        print(f"FAILED to publish to {specific_topic}")
+
+                    # CRITICAL: Wait 2 seconds between SSL packets!
+                    # The ESP32-C3 needs time to process encryption for each message.
+                    time.sleep(2)
 
                 if hasattr(wifi, 'led'):
                     wifi.led.set_state(0, 0, 0)
@@ -73,7 +85,7 @@ def main():
 
             print(f"--- Cycle finished. Next reading in {LOOP_INTERVAL_SEC}s ---")
 
-            # Clean up memory
+            # Clean up memory to prevent crashes
             gc.collect()
             time.sleep(LOOP_INTERVAL_SEC)
 

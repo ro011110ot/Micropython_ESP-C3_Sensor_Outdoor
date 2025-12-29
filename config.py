@@ -35,7 +35,7 @@ SENSORS = {
         "active": True,
         "pin": 4,
         "location": "Aussen",
-        "provides": {"temperature": {"id_prefix": "Sensor_DS18B20", "unit": "°C"}},
+        "provides": {"temperature": {"id_prefix": "Sensor_DS18B20", "unit": "C"}},
     },
     "button_1": {
         "type": "Button",
