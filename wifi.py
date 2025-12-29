@@ -6,7 +6,6 @@ from secrets import WIFI_CREDENTIALS
 
 # --- Dynamic LED Detection ---
 led = None
-
 try:
     from status_led_rgb import StatusLedRGB
     led = StatusLedRGB()
@@ -31,21 +30,18 @@ def connect():
     """
     wlan = network.WLAN(network.STA_IF)
     wlan.active(True)
-
-    # Read and format MAC address
     mac = ubinascii.hexlify(wlan.config("mac")).decode()
 
     for creds in WIFI_CREDENTIALS:
         wlan.disconnect()
         time.sleep(1)
-
         ssid = creds.get("ssid")
         password = creds.get("password")
 
-        print(f"Connecting to {ssid}...")
+        print(f"Connecting to SSID: {ssid}...")
         wlan.connect(ssid, password)
 
-        # Wait for connection (max 10 seconds)
+        # Wait max 10 seconds for connection
         max_wait = 10
         while max_wait > 0:
             led.wifi_connecting()
@@ -55,22 +51,13 @@ def connect():
             time.sleep(1)
 
         if wlan.isconnected():
-            config = wlan.ifconfig()
-            ip_address = config[0]
-
             print("-" * 30)
             print("WiFi connected successfully!")
-            print(f"SSID: {ssid}")
-            print(f"IP:   {ip_address}")
+            print(f"IP:   {wlan.ifconfig()[0]}")
             print(f"MAC:  {mac.upper()}")
             print("-" * 30)
+            led.set_state(0, 0, 0) # Turn LED off
+            return True
 
-            # Set LED to off
-            led.set_state(0, 0, 0)
-            return True 
-
-    if not wlan.isconnected():
-        led.set_state(255, 0, 0) # Red for error
-        print(f"Error: Could not connect to any network. MAC: {mac.upper()}")
-        raise RuntimeError("Network connection failed")
+    print("WiFi connection failed for all credentials.")
     return False

@@ -3,6 +3,6 @@
   <component name="MicroPythonTools">
     <option name="lastShownVersion" value="2025.3.3" />
     <option name="pluginEnabled" value="true" />
-    <option name="portName" value="/dev/ttyACM1" />
+    <option name="portName" value="/dev/ttyUSB0" />
   </component>
 </project>

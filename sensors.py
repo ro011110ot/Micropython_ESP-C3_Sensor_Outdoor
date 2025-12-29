@@ -1,62 +1,58 @@
 # sensors.py
 import time
-from machine import Pin, ADC, I2C
+from machine import Pin
 
-# Import sensor-specific libraries with error handling
 try:
-    import onewire
-    import ds18x20
+    import dht
 except ImportError:
-    onewire = None
-    ds18x20 = None
+    dht = None
 
-def _read_ds18b20_bus(config):
-    """Reads all DS18B20 sensors on a specific pin."""
-    if onewire is None: return []
-    
-    readings = []
-    pin = Pin(config["pin"])
-    ds_bus = ds18x20.DS18X20(onewire.OneWire(pin))
+def _read_dht11(config):
+    """Reads temperature and humidity from a DHT11 sensor."""
+    if dht is None: return []
     
     try:
-        roms = ds_bus.scan()
-        if not roms:
-            print(f"No DS18B20 sensors found on pin {config['pin']}")
-            return []
-            
-        ds_bus.convert_temp()
-        time.sleep_ms(750) # Required conversion time
+        sensor = dht.DHT11(Pin(config["pin"]))
+        sensor.measure()
+        time.sleep(1) # Stability delay
         
-        for rom in roms:
-            temp = ds_bus.read_temp(rom)
-            if temp != 85.0: # Filter out power-on default value
-                sensor_id = "".join("{:02x}".format(x) for x in rom)
-                readings.append({
-                    "type": "DS18B20",
-                    "data": {
-                        "id": config["provides"]["temperature"]["id_prefix"] + "_" + sensor_id,
-                        "value": round(temp, 2),
-                        "unit": config["provides"]["temperature"]["unit"]
-                    }
-                })
+        readings = []
+        # Add temperature reading
+        readings.append({
+            "type": "DHT11",
+            "data": {
+                "id": config["provides"]["temperature"]["id"],
+                "value": sensor.temperature(),
+                "unit": config["provides"]["temperature"]["unit"]
+            }
+        })
+        # Add humidity reading
+        readings.append({
+            "type": "DHT11",
+            "data": {
+                "id": config["provides"]["humidity"]["id"],
+                "value": sensor.humidity(),
+                "unit": config["provides"]["humidity"]["unit"]
+            }
+        })
         return readings
     except Exception as e:
-        print(f"DS18B20 reading error: {e}")
+        print(f"DHT11 reading error on pin {config['pin']}: {e}")
         return []
 
 def read_all_sensors():
-    """Reads all sensors defined as active in config.py."""
+    """Reads all sensors defined in config.py."""
     from config import SENSORS
     all_readings = []
 
-    print("\n--- Reading all sensors ---")
+    print("\n--- Reading indoor sensors ---")
     for name, cfg in SENSORS.items():
         if not cfg.get("active", False):
             continue
 
-        if cfg["type"] == "DS18B20":
-            all_readings.extend(_read_ds18b20_bus(cfg))
-        # Add more types here (DHT11, LDR, etc.)
+        if cfg["type"] == "DHT11":
+            all_readings.extend(_read_dht11(cfg))
+        # Add other sensor types (e.g., LDR or Button) if needed
             
     print("--- Finished reading sensors ---")
     return all_readings

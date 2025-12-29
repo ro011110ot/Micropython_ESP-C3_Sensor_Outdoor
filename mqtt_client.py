@@ -8,6 +8,7 @@ from umqtt.simple import MQTTClient
 class MQTT:
     """
     MQTT client with SSL support, Last Will (LWT), and publishing capabilities.
+    Unified version for all sensor nodes.
     """
 
     def __init__(self):
@@ -58,7 +59,6 @@ class MQTT:
             return False
 
         try:
-            # Convert dictionary/data to JSON string
             payload = json.dumps(data)
             self.client.publish(topic, payload)
             return True
