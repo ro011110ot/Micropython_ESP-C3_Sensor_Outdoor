@@ -8,11 +8,12 @@ from mqtt_client import MQTT
 from sensors import read_all_sensors
 
 # --- Configuration ---
-LOOP_INTERVAL_SEC = 900  # 15 minutes cycle
+# Reduced for responsiveness, change back to 900 for battery/long-term
+LOOP_INTERVAL_SEC = 900
 
 
 def main():
-    print("--- ESP32-C3 Sensor Station Starting ---")
+    print("--- ESP32-C3 Outdoor Sensor Station Starting ---")
 
     # 1. Connect to WiFi
     try:
@@ -27,7 +28,7 @@ def main():
 
     # 2. Synchronize Time
     try:
-        ntp.sync()  # Updated to match your ntp.py function name
+        ntp.sync()
     except Exception as e:
         print(f"Time synchronization failed: {e}")
 
@@ -38,7 +39,7 @@ def main():
         time.sleep(30)
         machine.reset()
 
-    print("\n--- Starting Main Sensor Loop ---")
+    print("\n--- Starting Main Outdoor Loop ---")
 
     while True:
         try:
@@ -47,30 +48,30 @@ def main():
                 print("MQTT connection lost. Reconnecting...")
                 mqtt.connect()
 
-            # Read all sensors configured in config.py
+            # Read all sensors configured in sensors.py (e.g., DS18B20)
             sensor_readings = read_all_sensors()
 
             if sensor_readings:
-                # Optional: Indicate activity via LED if available
+                # Indicate activity via LED if available
                 if hasattr(wifi, 'led'):
-                    wifi.led.set_state(0, 0, 255)  # Blue for transmission
+                    wifi.led.set_state(0, 0, 255)
 
                 for reading in sensor_readings:
-                    # 'reading' is a dict like {'type': 'DS18B20', 'data': {...}}
+                    # Payload contains id, value, unit
                     payload = reading["data"]
 
-                    # Publish to the 'Sensors' topic
-                    if mqtt.publish(payload, topic="Sensors"):
-                        print(f"Published: {payload['id']} -> {payload['value']} {payload['unit']}")
+                    # CHANGE: Publish to sub-topic 'Sensors/Outdoor'
+                    if mqtt.publish(payload, topic="Sensors/Outdoor"):
+                        print(f"Published to Sensors/Outdoor: {payload['id']} -> {payload['value']} {payload['unit']}")
 
-                    time.sleep(0.5)  # Short delay between messages
+                    time.sleep(0.5)
 
                 if hasattr(wifi, 'led'):
-                    wifi.led.set_state(0, 0, 0)  # LED off
+                    wifi.led.set_state(0, 0, 0)
             else:
                 print("No active sensors found or all readings failed.")
 
-            print(f"--- Cycle finished. Waiting {LOOP_INTERVAL_SEC} sec ---")
+            print(f"--- Cycle finished. Next reading in {LOOP_INTERVAL_SEC}s ---")
 
             # Clean up memory
             gc.collect()

@@ -30,7 +30,7 @@ def connect():
     """
     wlan = network.WLAN(network.STA_IF)
     wlan.active(True)
-    mac = ubinascii.hexlify(wlan.config("mac")).decode()
+    mac = ubinascii.hexlify(wlan.config("mac"), ":").decode()
 
     for creds in WIFI_CREDENTIALS:
         wlan.disconnect()
