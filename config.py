@@ -23,7 +23,7 @@ SENSORS = {
     "dht11_living_room": {
         "type": "DHT11",
         "active": False,
-        "pin": 4,
+        "pin": 2,
         "location": "Living Room",
         "provides": {
             "temperature": {"id": "Sensor_DHT11_Temp", "unit": "°C"},
