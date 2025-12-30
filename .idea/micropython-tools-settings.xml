@@ -4,5 +4,7 @@
     <option name="lastShownVersion" value="2025.3.3" />
     <option name="pluginEnabled" value="true" />
     <option name="portName" value="/dev/ttyACM1" />
+    <option name="usingUart" value="false" />
+    <option name="webReplIp" value="192.168.50.11" />
   </component>
 </project>
